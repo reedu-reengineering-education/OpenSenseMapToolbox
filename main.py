@@ -17,7 +17,7 @@ if __name__ == "__main__":
     res= [b for b in boxids['id']]
     #add boxes
     OSM.add_box(res)
-    # #OSM.save_OSM()
+    OSM.save_OSM()
 
 
 
@@ -25,9 +25,9 @@ if __name__ == "__main__":
     dirs = os.listdir(b_p)
 
     for dir in dirs:
-        data = pd.read_csv(os.path.join(dir, 'data.csv'))
+        data = pd.read_csv(os.path.join(b_p, dir, 'data.csv'))
         d_tours = utils.create_tours(data)
         tours = utils.extract_tours(d_tours)
-        tours.to_file(os.path.join(dir, f'tours_{os.path.basename(dir)}.geojson'))
+        tours.to_file(os.path.join(b_p, dir, f'tours_{os.path.basename(dir)}.geojson'))
 
 
