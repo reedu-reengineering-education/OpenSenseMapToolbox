@@ -31,6 +31,7 @@ class Box(APIressources):
         self.locations = self.get_box_locations()
         self.get_box_sensors()
         self.data = self.get_box_data()
+        self.a = 1
 
     def add_sensor(self, sensorId):
         if isinstance(sensorId, str):
@@ -57,19 +58,22 @@ class Box(APIressources):
         if len(self.sensors) > 1:
             logger.info(f"merging data for box '{self.boxId}' with {len(self.sensors)} sensor(s)")
             if len(self.sensors[0].data) == 0:
-                return
+                pass
             merged_df = self.sensors[0].data
             for sensor in self.sensors[1:]:
                 if len(sensor.data) == 0:
-                    return
+                    pass
                 merged_df = pd.merge(merged_df, sensor.data, on='createdAt', how='outer')
                 merged_df = merged_df.drop_duplicates(subset='createdAt', keep='first').reset_index(drop=True)
             merged_df['createdAt'] = pd.to_datetime(merged_df['createdAt'])
+            merged_df['createdAt'] = merged_df['createdAt'].dt.tz_localize(None)
+
 
             loc = pd.merge(merged_df, self.locations, on='createdAt', how='outer')
             loc = loc.drop_duplicates(subset='createdAt', keep='first').reset_index(drop=True)
 
             gdf = gpd.GeoDataFrame(loc)
+            gdf['createdAt'] = pd.to_datetime(gdf['createdAt'])
             return gdf
 
         elif len(self.sensors) == 1:
@@ -87,5 +91,5 @@ class Box(APIressources):
         time = [p['timestamp'] for p in data]
         df = pd.DataFrame({'createdAt': time, 'geometry': coords}).drop_duplicates(subset='createdAt', keep='first').reset_index(drop=True)
         df['createdAt'] = pd.to_datetime(df['createdAt'])
-
+        df['createdAt'] = df['createdAt'].dt.tz_localize(None)
         return df

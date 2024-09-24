@@ -2,18 +2,30 @@
 # from Box import Box
 # from Sensor import Sensor
 
-from opensensemaptoolbox.OpenSenseMap import OpenSenseMap
-from opensensemaptoolbox.Box import Box
-from opensensemaptoolbox.Sensor import Sensor
+from opensensemaptoolbox import OpenSenseMap
+from opensensemaptoolbox import Box
 import pandas as pd
 
 
 
-OSM = OpenSenseMap()
-# bs = OSM.box_sensor_dict_by_tag(tag='ATRAI')
-df_ids = OSM.read_csv('./bikeBoxIds.csv')
-OSM.add_box([x for x in df_ids['bikeBoxId']])
+OSM = OpenSenseMap.OpenSenseMap()
+
+# all_boxes = OSM.get_data('https://api.opensensemap.org/boxes')
+boxids = pd.read_csv("./boxIDs.csv")
+res= [b for b in boxids['id']]
+# res = []
+# for i, box in enumerate(all_boxes):
+#     sens = box['sensors']
+#     print(i)
+#     for sen in sens:
+#         if 'title' in sen.keys():
+#             if sen['title'] == "Surface Sett":
+#                 res.append(box['_id'])
+# df = pd.DataFrame(dict(id=res))
+# df.to_csv('./boxIDs.csv')
+for box in res:
+    print(f'XXXXXXXXXXXXXXXXXXXXXXXXX    {box}    XXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
+    OSM.add_box(box)
 OSM.save_OSM()
-OSM.add_box('66bccabdee77e400087c454a')
-ss = Sensor('66bccabdee77e400087c454a')
-a = 1
+
+
