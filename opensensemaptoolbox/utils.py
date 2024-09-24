@@ -3,7 +3,6 @@ import pandas as pd
 import geopandas as gpd
 from shapely import LineString, Point
 
-data = pd.read_csv("/work/PROJEKTE/ATRAI-BIKES/OpenSenseMapToolbox/data/6696762ce3b7f100086e80ff/data.csv")
 
 def create_tours(data, intervall = 15):
     data['createdAt'] = pd.to_datetime(data['createdAt'])
@@ -20,13 +19,6 @@ def parse_point(point_str):
     return Point(float(coords[0]), float(coords[1]))
 
 
-def points_to_line(data):
-    ps = pd.Series([x for x in data['geometry']])
-    points = [parse_point(p) for p in ps]
-    valid_points = [p for p in points if p is not None]
-
-    return LineString(valid_points)
-
 
 def extract_tours(data, tourcol = 'tour'):
     tours = [int(x) for x in data[tourcol].unique()]
@@ -34,14 +26,17 @@ def extract_tours(data, tourcol = 'tour'):
     res_tours = []
     for tour in tours:
         subset = data[data[tourcol] == tour]
-        if len(subset) > 1:
+        ps = pd.Series([x for x in subset['geometry']])
+        points = [parse_point(p) for p in ps]
+        valid_points = [p for p in points if p is not None]
+        if len(valid_points) > 1:
             res_tours.append(tour)
-            res.append(points_to_line(subset))
+            res.append(LineString(valid_points))
 
     gdf = gpd.GeoDataFrame(dict(tour=[f'tour_{x}' for x in res_tours],
-                           geometry=res), geometry='geometry')
+                           geometry=res), geometry='geometry').set_crs('EPSG:4326')
 
     return gdf
 
-aa = extract_tours(data)
+
 
