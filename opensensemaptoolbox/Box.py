@@ -74,6 +74,7 @@ class Box(APIressources):
 
             gdf = gpd.GeoDataFrame(loc)
             gdf['createdAt'] = pd.to_datetime(gdf['createdAt'])
+            #gdf['createdAt'] += pd.to_timedelta(1, unit='us')
             return gdf
 
         elif len(self.sensors) == 1:
@@ -92,4 +93,5 @@ class Box(APIressources):
         df = pd.DataFrame({'createdAt': time, 'geometry': coords}).drop_duplicates(subset='createdAt', keep='first').reset_index(drop=True)
         df['createdAt'] = pd.to_datetime(df['createdAt'])
         df['createdAt'] = df['createdAt'].dt.tz_localize(None)
+        #df['createdAt'] += pd.to_timedelta(1, unit='us')
         return df

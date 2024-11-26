@@ -14,6 +14,7 @@ class APIressources:
     def __init__(self, endpoints: dict):
         self.endpoints = endpoints
         self.endpoint_base = 'https://api.opensensemap.org'
+        self.status = {}
 
     def get_data(self, endpoint: str, params: dict = None, format: str = 'json'):
         try:
@@ -24,8 +25,10 @@ class APIressources:
                 return json.loads(res.text)
             if format == 'csv':
                 return pd.read_csv(StringIO(res.text))
-        except requests.exceptions.RequestException as e:
-            logger.critical(f"an error occurred: '{e}'")
+        except requests.RequestException as e:
+            logger.critical(f"an error occurred: '{e}' at source {endpoint}")
+            self.status = {'code': 'error'}
+            raise Warning(f"an error occurred: '{e}' at source {endpoint}")
 
     def endpoint_merge(self, endpoint):
         if endpoint not in self.endpoints.keys():

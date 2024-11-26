@@ -25,18 +25,39 @@ class Sensor(APIressources):
         )
         self.metadata = self.get_sensor_metadata()
         self.data = self.get_sensor_data()
-
+        self.status = {}
 
     def get_sensor_metadata(self):
-        data = self.get_data(self.endpoint_merge('sensor'))
+        data = None
+
+        try:
+            data = self.get_data(self.endpoint_merge('sensor'))
+        except Warning as w:
+            print(f"Warning encountered: {w} !")
+            self.status = {self.sensorId: "Error"}
+            
         return data
-    def get_sensor_data(self, params = None):
-        if params:
-            data = self.get_data(self.endpoint_merge('get_data'), params=params, format='csv')
-        else:
-            data = self.get_data(self.endpoint_merge('get_data'), params={'from-date': '1970-01-01T00:00:00Z',
-                                                                          'to-date': dt.datetime.now(dt.timezone.utc).isoformat().replace('+00:00', 'Z'),
-                                                                          'format': 'csv'}, format='csv')
-        data = data.rename(columns={'value': self.metadata['title']})
+
+    def get_sensor_data(self):
+        res = pd.DataFrame()
+        all_data = False
+        default_params = {'from-date': '1970-01-01T00:00:00Z',
+                          'to-date': dt.datetime.now(dt.timezone.utc).isoformat().replace('+00:00', 'Z'),
+                          'format': 'csv'}
+
+        while not all_data:
+            data = self.get_data(self.endpoint_merge('get_data'), params=default_params, format='csv')
+            res = pd.concat([res, data], ignore_index=True)
+            if len(data) > 0:
+                last_date = data['createdAt'].iloc[-1]
+                default_params ={'from-date': '1970-01-01T00:00:00Z',
+                                 'to-date': last_date,
+                                 'format': 'csv'}
+            else:
+                return(res.rename(columns={'value': self.metadata['title']}))
+            if len(data) < 1000:
+                all_data = True
+
+        data_return = res.rename(columns={'value': self.metadata['title']})
         #data['createdAt'] = pd.to_datetime(data['createdAt'])
-        return data
+        return data_return
