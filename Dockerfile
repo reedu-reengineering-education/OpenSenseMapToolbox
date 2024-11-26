@@ -1,6 +1,6 @@
 FROM python:latest
 
-WORKDIR atrai
+WORKDIR osmtoolbox
 
 COPY req.txt req.txt
 RUN pip install -r req.txt
@@ -12,4 +12,3 @@ RUN pip install -e .
 COPY . .
 
 CMD [ "python", "main.py" ]
-#CMD [ "sleep", "infinity" ]
