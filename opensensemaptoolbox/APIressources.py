@@ -19,7 +19,7 @@ class APIressources:
     def get_data(self, endpoint: str, params: dict = None, format: str = 'json'):
         try:
             print(f'getting: {endpoint}')
-            res = requests.get(endpoint, params=params, timeout=10)
+            res = requests.get(endpoint, params=params, timeout=30)
             res.raise_for_status()
             if format == 'json':
                 return json.loads(res.text)
