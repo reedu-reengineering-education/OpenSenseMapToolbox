@@ -8,8 +8,7 @@ easiest way to find your osm boxId is to go to [openSenseMap](https://opensensem
 ### locally
 - setup virtualenv
 - use pip install to install requirements
-- add openSenseMap boxId to your OSM object in `main.py`
-- run `main.py`
+- run `python main.py <box_id1> <box_id2>` ... OR `python main.py -f <file_path>` (path to a file with ids row by row)
 ### Docker
 - add openSenseMap boxId to your OSM object in `main.py`
 - builld Docker Image
