@@ -6,6 +6,8 @@ import numpy
 import json
 from io import StringIO
 from urllib.parse import urljoin
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 
 from .APIressources import APIressources
 from .Box import Box
@@ -49,11 +51,39 @@ class OpenSenseMap(APIressources):
         if isinstance(boxId, Box):
             self.boxes.append(boxId)
 
-    def save_OSM(self):
-        data_path = './data'
+    def save_OSM(self, **kwargs):
+        mode = kwargs.get('mode', "csv")
+        csv_base_path = kwargs.get('csv_base_path', './data')
+        csv_name = kwargs.get('csv_name', 'data.csv')
+
         if len(self.boxes) > 0:
+            if mode == 'csv':
+                for box in self.boxes:
+                    box.combine_records_with_fetched_data()
+                    box_data_path = os.path.join(csv_base_path, box.boxId)
+                    os.makedirs(box_data_path, exist_ok=True)
+                    if isinstance(box.data, gpd.GeoDataFrame):
+                        box.save_csv(data=box.data, path=os.path.join(box_data_path, csv_name))
+
+    def fetch_box_data(self, **kwargs):
+        with ThreadPoolExecutor(max_workers=50) as executor:
+            futures = [executor.submit(box.fetch_box_data, **kwargs) for box in self.boxes]
+            for future in as_completed(futures):
+                try:
+                    future.result()
+                except Exception as e:
+                    print(f"Error fetching box data: {e}")
+
+    def read_OSM(self, **kwargs):
+        mode = kwargs.get('mode', None)
+        if mode is None:
+            print("need mode to read from datasource")
+        else:
             for box in self.boxes:
-                box_data_path = os.path.join(data_path, box.boxId)
-                os.makedirs(box_data_path, exist_ok=True)
-                if isinstance(box.data, gpd.GeoDataFrame):
-                    box.save_csv(box.data, os.path.join(box_data_path, 'data.csv'))
+                box.read_box_data(**kwargs)
+
+    def update_OSM(self, **kwargs):
+        self.read_OSM(**kwargs)
+        for box in self.boxes:
+            box.check_for_new_data()
+

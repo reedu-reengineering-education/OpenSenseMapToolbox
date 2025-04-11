@@ -23,8 +23,8 @@ class Sensor(APIressources):
                                         'ref': 'https://docs.opensensemap.org/#api-Measurements-getLatestMeasurementOfSensor'}
                                    },
         )
-        self.metadata = self.get_sensor_metadata()
-        self.data = self.get_sensor_data()
+        self.metadata = None
+        self.data = None
         self.status = {}
 
     def get_sensor_metadata(self):
@@ -35,14 +35,20 @@ class Sensor(APIressources):
         except Warning as w:
             print(f"Warning encountered: {w} !")
             self.status = {self.sensorId: "Error"}
-            
+        self.metadata = data
         return data
 
-    def get_sensor_data(self):
+    def get_sensor_data(self, **kwargs):
+        if self.metadata == None:
+            self.get_sensor_metadata()
+
+        self.t_from = kwargs.get("t_from", self.t_from)
+        self.t_to = kwargs.get("t_to", self.t_to)
+
         res = pd.DataFrame()
         all_data = False
-        default_params = {'from-date': '1970-01-01T00:00:00Z',
-                          'to-date': dt.datetime.now(dt.timezone.utc).isoformat().replace('+00:00', 'Z'),
+        default_params = {'from-date': self.t_from,
+                          'to-date': self.t_to,
                           'format': 'csv'}
 
         while not all_data:
@@ -50,7 +56,7 @@ class Sensor(APIressources):
             res = pd.concat([res, data], ignore_index=True)
             if len(data) > 0:
                 last_date = data['createdAt'].iloc[-1]
-                default_params ={'from-date': '1970-01-01T00:00:00Z',
+                default_params ={'from-date': self.t_from,
                                  'to-date': last_date,
                                  'format': 'csv'}
             else:
@@ -60,4 +66,6 @@ class Sensor(APIressources):
 
         data_return = res.rename(columns={'value': self.metadata['title']})
         #data['createdAt'] = pd.to_datetime(data['createdAt'])
+        self.data = data_return
+
         return data_return

@@ -1,7 +1,8 @@
-from opensensemaptoolbox import OpenSenseMap
+import opensensemaptoolbox as osm
 import sys
 import os
 import argparse
+import pandas as pd
 
 def read_box_ids_from_file(file_path):
     with open(file_path, 'r') as file:
@@ -24,7 +25,9 @@ if __name__ == "__main__":
         boxIds = args.ids
         print("IDs from command line:", args.ids)
 
-
-    OSM = OpenSenseMap.OpenSenseMap()
+    boxIds = [i for i in pd.read_csv('../atrai_analyse/boxIDs.csv')['id']]
+    print(boxIds)
+    OSM = osm.OpenSenseMap()
     OSM.add_box(boxIds)
+    OSM.fetch_box_data()
     OSM.save_OSM()
