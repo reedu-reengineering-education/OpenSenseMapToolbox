@@ -84,6 +84,9 @@ class OpenSenseMap(APIressources):
 
     def update_OSM(self, **kwargs):
         self.read_OSM(**kwargs)
-        for box in self.boxes:
-            box.check_for_new_data()
+
+        with ThreadPoolExecutor() as executor:
+            futures = [executor.submit(box.check_for_new_data) for box in self.boxes]
+            for future in as_completed(futures):
+                future.result()
 

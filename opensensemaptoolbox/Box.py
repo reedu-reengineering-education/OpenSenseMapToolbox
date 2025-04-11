@@ -87,6 +87,8 @@ class Box(APIressources):
             merged_df = merged_df.drop_duplicates(subset='createdAt', keep='first').reset_index(drop=True)
 
         merged_df['createdAt'] = pd.to_datetime(merged_df['createdAt']).dt.tz_localize(None)
+        # merged_df['createdAt'] = pd.to_datetime(merged_df['createdAt']).dt.tz_localize(None).dt.strftime(
+        #     '%Y-%m-%d %H:%M:%S')
         loc = pd.merge(merged_df, self.locations, on='createdAt', how='outer')
         loc = loc.drop_duplicates(subset='createdAt', keep='first').reset_index(drop=True)
         gdf = gpd.GeoDataFrame(loc)
@@ -123,15 +125,18 @@ class Box(APIressources):
 
         if mode == 'csv':
             print(f"Reading csv '{csv_name}' from '{csv_base_path}' for box '{self.boxId}'")
-            df = pd.read_csv(os.path.join(csv_base_path, self.boxId, csv_name), index_col=False)
-            df = df[df['geometry'].notna()]
-            df['geometry'] = df['geometry'].astype(str)
-            df['geometry'] = gpd.GeoSeries.from_wkt(df['geometry'])
-            gdf = gpd.GeoDataFrame(df, geometry='geometry')
-            gdf.set_crs('EPSG:4326', inplace=True)
-            self.data_read = gdf
+            csv_file_path = os.path.join(csv_base_path, self.boxId, csv_name)
+            if os.path.exists(csv_file_path):
+                df = pd.read_csv(csv_file_path, index_col=False)
+                df['geometry'] = df['geometry'].astype(str)
+                df['geometry'] = df['geometry'].apply(lambda x: x if x != 'nan' else None)
+                df['geometry'] = gpd.GeoSeries.from_wkt(df['geometry'], crs='EPSG:4326')
+                gdf = gpd.GeoDataFrame(df, geometry='geometry')
 
-        return gdf
+                # df['createdAt'] = pd.to_datetime(df['createdAt'], format='%Y-%m-%d %H:%M:%S.%f', errors='coerce')
+                self.data_read = gdf
+
+                return gdf
 
     def combine_records_with_fetched_data(self, **kwargs):
 
@@ -143,13 +148,21 @@ class Box(APIressources):
         elif self.data_fetched is None and self.data_read is not None:
             self.data = self.data_read
         elif self.data_fetched is not None and self.data_read is not None:
-            self.data = gpd.GeoDataFrame(pd.concat([self.data_read, self.data_fetched]).drop_duplicates().reset_index(drop=True), geometry='geometry')
+            self.data_fetched['createdAt'] = self.data_fetched['createdAt'].apply(
+                lambda x: x.strftime('%Y-%m-%d %H:%M:%S.') + f"{x.microsecond:06d}"
+            )
+            df = pd.concat([self.data_read, self.data_fetched]).reset_index(drop=True)
+            df = df.drop_duplicates(subset='createdAt', keep='first')
+            self.data = gpd.GeoDataFrame(df, geometry='geometry')
 
             # todo:
             # self.data = self.combine_fetch_read_data(self.data_read, self.data_fetched)
 
     def check_for_new_data(self, **kwargs):
         self.metadata = self.get_box_metadata()
+        if self.data_read is None:
+            self.fetch_box_data()
+            return
         lastEntry = pd.to_datetime(self.data_read.iloc[-1]['createdAt']).tz_localize('UTC')
         lastMeasurement = pd.to_datetime(self.metadata['lastMeasurementAt'])
         if  lastEntry != lastMeasurement:
