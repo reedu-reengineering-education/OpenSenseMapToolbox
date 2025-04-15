@@ -6,6 +6,9 @@ import numpy
 import json
 from io import StringIO
 from urllib.parse import urljoin
+
+import sqlalchemy
+
 from .APIressources import APIressources
 from .Sensor import Sensor
 from shapely import Point
@@ -36,6 +39,7 @@ class Box(APIressources):
         self.data_read = None
         self.a = 1
 
+
     def add_sensor(self, sensorId):
         if isinstance(sensorId, str):
             sensor = Sensor(self.boxId, sensorId)
@@ -48,10 +52,12 @@ class Box(APIressources):
         if isinstance(sensorId, Sensor):
             self.sensors.append(sensorId)
 
+
     def get_box_metadata(self):
         data = self.get_data(self.endpoint_merge('box'))
 
         return data
+
 
     def get_box_sensors(self):
         if self.metadata is None:
@@ -59,6 +65,7 @@ class Box(APIressources):
         ids = [sen['_id'] for sen in  self.metadata['sensors']]
         logger.info(f"found {len(ids)} sensor(s) for box '{self.boxId}' ")
         self.add_sensor(ids)
+
 
     def get_box_sensors_data(self, **kwargs):
         if len(self.sensors) == 0:
@@ -112,16 +119,19 @@ class Box(APIressources):
 
         return df
 
+
     def fetch_box_data(self, **kwargs):
         self.metadata = self.get_box_metadata()
         self.locations = self.get_box_locations(**kwargs)
         self.get_box_sensors_data(**kwargs)
         self.data_fetched = self.merge_sensors_data(**kwargs)
 
+
     def read_box_data(self, **kwargs):
         mode = kwargs.get('mode', None)
         csv_base_path = kwargs.get('csv_base_path', './data')
         csv_name = kwargs.get('csv_name', 'data.csv')
+        engine = kwargs.get('engine', None)
 
         if mode == 'csv':
             print(f"Reading csv '{csv_name}' from '{csv_base_path}' for box '{self.boxId}'")
@@ -135,8 +145,18 @@ class Box(APIressources):
 
                 # df['createdAt'] = pd.to_datetime(df['createdAt'], format='%Y-%m-%d %H:%M:%S.%f', errors='coerce')
                 self.data_read = gdf
-
                 return gdf
+
+        if mode == 'postgis':
+            inspector = sqlalchemy.inspect(engine)
+            table_exists = self.boxId in inspector.get_table_names()
+            if table_exists:
+                gdf = gpd.read_postgis(sql=f"""SELECT * FROM "{self.boxId}"; """, con=engine, geom_col='geometry')
+                self.data_read = gdf
+                return gdf
+            else:
+                return None
+
 
     def combine_records_with_fetched_data(self, **kwargs):
 
@@ -148,15 +168,16 @@ class Box(APIressources):
         elif self.data_fetched is None and self.data_read is not None:
             self.data = self.data_read
         elif self.data_fetched is not None and self.data_read is not None:
-            self.data_fetched['createdAt'] = self.data_fetched['createdAt'].apply(
-                lambda x: x.strftime('%Y-%m-%d %H:%M:%S.') + f"{x.microsecond:06d}"
-            )
+            # self.data_fetched['createdAt'] = self.data_fetched['createdAt'].apply(
+            #     lambda x: x.strftime('%Y-%m-%d %H:%M:%S.') + f"{x.microsecond:06d}"
+            # )
             df = pd.concat([self.data_read, self.data_fetched]).reset_index(drop=True)
             df = df.drop_duplicates(subset='createdAt', keep='first')
             self.data = gpd.GeoDataFrame(df, geometry='geometry')
 
             # todo:
             # self.data = self.combine_fetch_read_data(self.data_read, self.data_fetched)
+
 
     def check_for_new_data(self, **kwargs):
         self.metadata = self.get_box_metadata()
@@ -170,3 +191,9 @@ class Box(APIressources):
                 t_from=lastEntry.strftime('%Y-%m-%dT%H:%M:%SZ'),
                 t_to=lastMeasurement.strftime('%Y-%m-%dT%H:%M:%SZ'))
             self.combine_records_with_fetched_data()
+
+
+    def write_to_db(self, **kwargs):
+        engine = kwargs.get('engine', None)
+        if isinstance(self.data, gpd.GeoDataFrame):
+            self.data.to_postgis(name=self.boxId, con=engine, if_exists='replace', index=False)

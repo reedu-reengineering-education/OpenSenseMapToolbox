@@ -27,6 +27,7 @@ class Sensor(APIressources):
         self.data = None
         self.status = {}
 
+
     def get_sensor_metadata(self):
         data = None
 
@@ -37,6 +38,7 @@ class Sensor(APIressources):
             self.status = {self.sensorId: "Error"}
         self.metadata = data
         return data
+
 
     def get_sensor_data(self, **kwargs):
         if self.metadata == None:

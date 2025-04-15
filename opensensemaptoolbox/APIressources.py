@@ -21,6 +21,7 @@ class APIressources:
         self.t_to = dt.datetime.now(dt.timezone.utc).isoformat().replace('+00:00', 'Z')
         self.data = None
 
+
     def get_data(self, endpoint: str, params: dict = None, format: str = 'json', retries = 3):
         for attempt in range(retries):
             try:
@@ -39,10 +40,12 @@ class APIressources:
                     raise Warning(f"an error occurred: '{e}' at source {endpoint}")
                 time.sleep(5)
 
+
     def endpoint_merge(self, endpoint):
         if endpoint not in self.endpoints.keys():
             raise KeyError(f"'{endpoint}' not found in endpoints must be one of {self.endpoints.keys()}")
         return urljoin(self.endpoint_base, self.endpoints[endpoint]['endpoint'])
+
 
     def save_json(self, data, path):
         base_path = os.path.dirname(path)
@@ -51,15 +54,18 @@ class APIressources:
         with open(path, 'w') as json_file:
             json.dump(data, json_file)
 
+
     def read_json(self, path):
         with open(path, 'r') as json_file:
             return json.load(json_file)
+
 
     def save_csv(self, data, path):
         if isinstance(data, pd.DataFrame):
             data.to_csv(path, index=False)
         else:
             raise TypeError('data needs to be pandas dataframe')
+
 
     def read_csv(self, path):
         return pd.read_csv(path, index_col=False)
