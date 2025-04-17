@@ -100,6 +100,7 @@ class Box(APIressources):
         loc = loc.drop_duplicates(subset='createdAt', keep='first').reset_index(drop=True)
         gdf = gpd.GeoDataFrame(loc)
         gdf['createdAt'] = pd.to_datetime(gdf['createdAt'])
+        gdf.set_crs("EPSG:4326", inplace=True)
 
         return gdf
 
@@ -125,6 +126,7 @@ class Box(APIressources):
         self.locations = self.get_box_locations(**kwargs)
         self.get_box_sensors_data(**kwargs)
         self.data_fetched = self.merge_sensors_data(**kwargs)
+
 
 
     def read_box_data(self, **kwargs):
