@@ -106,7 +106,7 @@ class OpenSenseMap(APIressources):
 
 
     def fetch_box_data(self, **kwargs):
-        with ThreadPoolExecutor(max_workers=50) as executor:
+        with ThreadPoolExecutor(max_workers=20) as executor:
             futures = [executor.submit(box.fetch_box_data, **kwargs) for box in self.boxes]
             for future in as_completed(futures):
                 try:

@@ -70,8 +70,16 @@ class Box(APIressources):
     def get_box_sensors_data(self, **kwargs):
         if len(self.sensors) == 0:
             self.get_box_sensors()
-        for sens in self.sensors:
-            sens.get_sensor_data(**kwargs)
+        # for sens in self.sensors:
+        #     sens.get_sensor_data(**kwargs)
+
+        with ThreadPoolExecutor(max_workers=19) as executor:
+            futures = [executor.submit(sensor.get_sensor_data, **kwargs) for sensor in self.sensors]
+            for future in as_completed(futures):
+                try:
+                    future.result()  # Wait for each sensor data fetching to complete
+                except Exception as e:
+                    logger.error(f"Error fetching sensor data: {e}")
 
 
     def merge_sensors_data(self, **kwargs):
