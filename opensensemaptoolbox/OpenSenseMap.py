@@ -159,6 +159,7 @@ class OpenSenseMap(APIressources):
             for box in self.boxes:
                 box.combine_records_with_fetched_data()
                 if box.data is not None:
+                    box.data['id'] = box.boxId
                     buffer.append(box.data)
             clean_crs = [gdf.to_crs("EPSG:4326") for gdf in buffer]
             merged_gdf = gpd.GeoDataFrame(pd.concat(clean_crs, ignore_index=True))
