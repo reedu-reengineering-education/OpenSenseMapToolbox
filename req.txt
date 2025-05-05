@@ -3,3 +3,6 @@ pandas
 numpy
 requests
 setuptools
+sqlalchemy
+psycopg2
+geoalchemy2
