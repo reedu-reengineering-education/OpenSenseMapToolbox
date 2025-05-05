@@ -206,4 +206,9 @@ class Box(APIressources):
     def write_to_db(self, **kwargs):
         engine = kwargs.get('engine', None)
         if isinstance(self.data, gpd.GeoDataFrame):
+            # Add tags column to the GeoDataFrame
+            tags = self.metadata.get('tags', []) if self.metadata else []
+            self.data['tags'] = ','.join(tags)  # Convert tags list to a comma-separated string
+
+            # Write to PostGIS
             self.data.to_postgis(name=self.boxId, con=engine, if_exists='replace', index=False)
