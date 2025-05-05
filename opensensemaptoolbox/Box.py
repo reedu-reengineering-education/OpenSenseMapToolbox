@@ -175,14 +175,17 @@ class Box(APIressources):
             return
         elif self.data_fetched is not None and self.data_read is None:
             self.data = self.data_fetched
+            self.data['tags'] = ','.join(self.metadata.get('grouptag', []))  # Convert tags list to a comma-separated string
         elif self.data_fetched is None and self.data_read is not None:
             self.data = self.data_read
+            self.data['tags'] = ','.join(self.metadata.get('grouptag', []))
         elif self.data_fetched is not None and self.data_read is not None:
             # self.data_fetched['createdAt'] = self.data_fetched['createdAt'].apply(
             #     lambda x: x.strftime('%Y-%m-%d %H:%M:%S.') + f"{x.microsecond:06d}"
             # )
             df = pd.concat([self.data_read, self.data_fetched]).reset_index(drop=True)
             df = df.drop_duplicates(subset='createdAt', keep='first')
+            df['tags'] = ','.join(self.metadata.get('grouptag', []))  # Convert tags list to a comma-separated string
             self.data = gpd.GeoDataFrame(df, geometry='geometry')
 
             # todo:
@@ -206,9 +209,5 @@ class Box(APIressources):
     def write_to_db(self, **kwargs):
         engine = kwargs.get('engine', None)
         if isinstance(self.data, gpd.GeoDataFrame):
-            # Add tags column to the GeoDataFrame
-            tags = self.metadata.get('tags', []) if self.metadata else []
-            self.data['tags'] = ','.join(tags)  # Convert tags list to a comma-separated string
-
             # Write to PostGIS
             self.data.to_postgis(name=self.boxId, con=engine, if_exists='replace', index=False)

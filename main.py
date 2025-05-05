@@ -25,8 +25,8 @@ if __name__ == "__main__":
         boxIds = args.ids
         print("IDs from command line:", args.ids)
 
-    boxIds = [i for i in pd.read_csv('../atrai_analyse/boxIDs.csv')['id']]
+    # boxIds = [i for i in pd.read_csv('../atrai_analyse/boxIDs.csv')['id']]
     OSM = osm.OpenSenseMap()
     OSM.add_box(boxIds)
     OSM.fetch_box_data()
-    OSM.save_OSM()
+    OSM.save_OSM(mode='csv', csv_base_path='./data', csv_name='data.csv')
